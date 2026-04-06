@@ -4,6 +4,7 @@ struct ContentView: View {
     @State private var usedWords = [String]()
     @State private var rootWord = ""
     @State private var newWord = ""
+    @State private var score = 0
     
     //errors
     @State private var errorTitle = ""
@@ -12,32 +13,40 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    TextField("Enter your word", text: $newWord)
-                        .textInputAutocapitalization(.never)
-
-                }
-                
-                Section {
-                    ForEach(usedWords, id: \.self) { word in
-                        HStack {
-                            Image(systemName: "\(word.count).circle")
-                            Text(word)
+                VStack {
+                    List {
+                        Section {
+                            TextField("Enter your word", text: $newWord)
+                                .textInputAutocapitalization(.never)
                         }
+                        
+                        Section {
+                            ForEach(usedWords, id: \.self) { word in
+                                HStack {
+                                    Image(systemName: "\(word.count).circle")
+                                    Text(word)
+                                }
+                            }
+                        }
+                        
                     }
+                    .onSubmit(addNewWord)
+                    .onAppear(perform: startGame)
+                    .alert(errorTitle, isPresented: $showingError) {
+                        Button("OK") {}
+                    } message: {
+                        Text(errorMessage)
+                    }
+                    Text("score is \(score)")
+                }
+            .navigationTitle(rootWord)
+            .toolbar {
+                Button("Start a new game") {
+                    startGame()
+                    usedWords.removeAll()
+                    score = 0
                 }
             }
-            .navigationTitle(rootWord)
-            .onSubmit(addNewWord)
-            .onAppear(perform: startGame)
-            .alert(errorTitle, isPresented: $showingError) {
-                Button("OK") {}
-            } message: {
-                Text(errorMessage)
-            }
-
-
         }
     }
     
@@ -60,9 +69,20 @@ struct ContentView: View {
             return
         }
         
+        guard isMoreThanTwoLetters(word: answer) else {
+            wordError(title: "Word too short", message: "Words must be longer than two letters!")
+            return
+        }
+        
+        guard isNotEqualToRootWord(word: answer) else {
+            wordError(title: "Can't use root word", message: "You can't use the word you're trying to spell!")
+            return
+        }
+        
         withAnimation {
             usedWords.insert(answer, at: 0)
         }
+        score += answer.count
         newWord = ""
         
     }
@@ -81,6 +101,14 @@ struct ContentView: View {
     
     func isOriginal(word: String) -> Bool {
         !usedWords.contains(word)
+    }
+    
+    func isMoreThanTwoLetters(word: String) -> Bool {
+        word.count > 2
+    }
+    
+    func isNotEqualToRootWord(word: String) -> Bool {
+        word != rootWord
     }
     
     func isPossible(word: String) -> Bool {
@@ -109,6 +137,7 @@ struct ContentView: View {
         errorMessage = message
         showingError = true
     }
+    
 }
 
 #Preview {
